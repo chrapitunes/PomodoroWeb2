@@ -1,0 +1,722 @@
+/* ==========================================================================
+   Pomodoro — landing page styles
+   Tokens y utilidades custom. Tailwind se aplica vía CDN en el HTML.
+   ========================================================================== */
+
+/* ----- Fonts -----
+   Drop Nexa-Heavy.woff2 and Nexa-ExtraLight.woff2 into ./fonts/.
+   They're declared as separate families so each is used only at its native
+   weight; everything else falls through cleanly to Manrope.
+   -------------------------------------------------------------------------- */
+@font-face {
+  font-family: 'Nexa Heavy';
+  src: url('./fonts/Nexa-Heavy.woff2') format('woff2'),
+       url('./fonts/Nexa-Heavy.woff') format('woff');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Nexa ExtraLight';
+  src: url('./fonts/Nexa-ExtraLight.woff2') format('woff2'),
+       url('./fonts/Nexa-ExtraLight.woff') format('woff');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ----- Base -----
+   Default body text uses Manrope (handles every Tailwind weight).
+   Long-form paragraphs and `.font-airy` opt into Nexa ExtraLight.
+   Headings and `.font-display` use Nexa Heavy.
+   -------------------------------------------------------------------------- */
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-weight: 300;
+  color: #F5EFEA;
+  background: #0A0707;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+p, .font-airy {
+  font-family: 'Nexa ExtraLight', 'Manrope', system-ui, sans-serif;
+  font-weight: 200;
+}
+
+strong, b { font-weight: 700; }
+
+h1, h2, h3, h4, .font-display {
+  font-family: 'Nexa Heavy', 'Manrope', system-ui, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  line-height: 1.02;
+}
+
+/* ----- Decorative utilities (dark theme) ----- */
+.grain {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* Brand-red glow spots on black — used in hero and as section accents */
+.gradient-warm {
+  background:
+    radial-gradient(900px 500px at 80% -10%, rgba(232, 54, 14, 0.30) 0%, transparent 60%),
+    radial-gradient(700px 500px at -10% 30%, rgba(232, 54, 14, 0.18) 0%, transparent 55%);
+}
+
+/* Section-level brand glow (subtler, used on darker stretches) */
+.glow-spot {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  pointer-events: none;
+  opacity: 0.35;
+}
+.glow-spot.brand { background: #E8360E; }
+.glow-spot.amber { background: #FF9900; }
+
+.ring-soft {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* ----- Scroll showcase (vanilla port of Aceternity ContainerScroll) ----- */
+[data-showcase-phone] {
+  transform-origin: center center;
+  /* initial state matches scroll progress 0 — JS will overwrite once mounted */
+  transform: rotateX(20deg) scale(1.05);
+  transition: transform 50ms linear;
+}
+
+@media (max-width: 768px) {
+  [data-showcase-phone] {
+    transform: rotateX(20deg) scale(0.7);
+  }
+}
+
+[data-showcase-header] {
+  transform: translateY(0);
+  transition: transform 50ms linear;
+}
+
+.will-change-transform {
+  will-change: transform;
+}
+
+/* ==========================================================================
+   Hero phone — splash dial UI
+   ========================================================================== */
+.hero-dial .dial-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  transform: translate(var(--x), var(--y));
+  border-radius: 7px;
+  border: 1px solid rgba(232, 54, 14, 0.45);
+  background: rgba(232, 54, 14, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #E8360E;
+}
+.hero-dial .dial-icon.active {
+  border-color: #E8360E;
+  background: rgba(232, 54, 14, 0.15);
+  box-shadow: 0 0 16px rgba(232, 54, 14, 0.3);
+}
+.hero-dial .dial-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100px;
+  height: 100px;
+  margin: -50px 0 0 -50px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  text-align: center;
+}
+.hero-dial .dial-center-main {
+  font-family: 'Nexa Heavy', 'Manrope', sans-serif;
+  font-size: 11px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 0.05em;
+  line-height: 1.15;
+}
+.hero-dial .dial-center-sub {
+  font-family: 'Nexa Heavy', 'Manrope', sans-serif;
+  font-size: 8.5px;
+  font-weight: 900;
+  color: #FF9900;
+  letter-spacing: 0.28em;
+  margin-top: 8px;
+}
+
+/* ==========================================================================
+   Phone frame (shared)
+   ========================================================================== */
+.phone-frame {
+  width: 340px;
+  aspect-ratio: 9 / 19.5;
+  background: #050303;
+  border-radius: 52px;
+  padding: 10px;
+  box-shadow:
+    0 40px 100px -20px rgba(232, 54, 14, 0.25),
+    0 12px 30px -10px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  position: relative;
+}
+
+.phone-frame::before {
+  /* Dynamic Island */
+  content: '';
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 110px;
+  height: 30px;
+  background: #000;
+  border-radius: 999px;
+  z-index: 30;
+}
+
+.phone-screen {
+  width: 100%;
+  height: 100%;
+  border-radius: 44px;
+  overflow: hidden;
+  position: relative;
+  background: #0E1922; /* dark map base, gets layered with map gradient below */
+}
+
+/* ==========================================================================
+   "Así se ve" — Apple Maps dark + categorías de antojo
+   ========================================================================== */
+.map-dark {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(140% 80% at 50% 50%, #143049 0%, #0E1F2D 55%, #0A1620 100%);
+}
+
+/* Stylized highways/roads */
+.map-dark::before,
+.map-dark::after {
+  content: '';
+  position: absolute;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+}
+.map-dark::before {
+  top: 38%; left: -15%; right: -15%; height: 10px;
+  transform: rotate(-9deg);
+  box-shadow: 0 14px 0 rgba(255,255,255,0.04);
+}
+.map-dark::after {
+  top: 64%; left: -10%; right: -10%; height: 6px;
+  transform: rotate(6deg);
+}
+
+.map-label {
+  position: absolute;
+  font-family: 'Manrope', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(180, 200, 220, 0.55);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.map-pin-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+/* Screen content stack */
+.screen-content {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 12px 0;
+  gap: 8px;
+}
+
+/* iOS status bar */
+.screen-statusbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 16px 2px;
+  font-family: 'Manrope', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+.screen-statusbar .left,
+.screen-statusbar .right {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.screen-statusbar .battery {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.55);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+.screen-statusbar .camera-pill {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #FF9900;
+  box-shadow: 0 0 0 2px rgba(255,153,0,0.25);
+}
+.screen-statusbar .sb-signal {
+  width: 16px;
+  height: 4px;
+}
+.screen-statusbar .sb-wifi {
+  width: 14px;
+  height: 14px;
+}
+
+/* Tabs row: INICIO + region selector */
+.screen-tabs {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+}
+.screen-tabs .tab-active {
+  font-family: 'Nexa Heavy', 'Manrope', sans-serif;
+  font-size: 11px;
+  font-weight: 900;
+  color: #E8360E;
+  letter-spacing: 0.18em;
+}
+.screen-tabs .selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: rgba(15, 12, 10, 0.82);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 999px;
+  font-family: 'Nexa Heavy', 'Manrope', sans-serif;
+  font-size: 10px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 0.05em;
+}
+.screen-tabs .selector svg { color: #E8360E; }
+
+/* Generic translucent card */
+.screen-card {
+  background: rgba(11, 13, 16, 0.78);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 18px;
+}
+
+/* Greeting */
+.screen-greeting {
+  padding: 14px 16px;
+}
+.screen-greeting .eyebrow {
+  font-family: 'Nexa Heavy', 'Manrope', sans-serif;
+  font-size: 10px;
+  font-weight: 900;
+  color: #E8360E;
+  letter-spacing: 0.22em;
+  margin-bottom: 6px;
+}
+.screen-greeting h3 {
+  margin: 0;
+  font-family: 'Nexa Heavy', 'Manrope', sans-serif;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: #fff;
+}
+
+/* Search pill */
+.screen-search {
+  padding: 11px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Manrope', sans-serif;
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+}
+
+/* Active dropdown w/ brand border */
+.screen-dropdown {
+  padding: 11px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1.5px solid #E8360E;
+  border-radius: 14px;
+  background: rgba(11, 13, 16, 0.82);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  font-family: 'Nexa Heavy', 'Manrope', sans-serif;
+  font-size: 12px;
+  font-weight: 900;
+  color: #fff;
+}
+.screen-dropdown svg { color: #E8360E; }
+
+/* Categories list */
+.screen-categories {
+  padding: 4px;
+}
+.screen-cat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: 'Nexa Heavy', 'Manrope', sans-serif;
+  font-size: 13px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.005em;
+}
+.screen-cat:last-child { border-bottom: none; }
+.screen-cat .icon-box {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1.5px solid #E8360E;
+  background: rgba(232, 54, 14, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #E8360E;
+}
+
+/* ==========================================================================
+   Showcase phone — no bezel, pure orange glow halo
+   ========================================================================== */
+.phone-glow {
+  box-shadow:
+    0 24px 60px -10px rgba(232, 54, 14, 0.45),
+    0 0 80px -10px rgba(232, 54, 14, 0.55),
+    0 0 160px -30px rgba(232, 54, 14, 0.45),
+    0 0 240px -50px rgba(255, 153, 0, 0.30);
+}
+
+/* ==========================================================================
+   Map screen — pin clusters
+   ========================================================================== */
+.pin-cluster {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(232, 54, 14, 0.28);
+  border: 2px solid #E8360E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  color: #fff;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 14px rgba(232, 54, 14, 0.55), inset 0 0 0 2px rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  z-index: 4;
+}
+.pin-cluster.active {
+  width: 26px;
+  height: 26px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #1A1410;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+/* ==========================================================================
+   Map screen — selected category pill
+   ========================================================================== */
+.screen-category-selected {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  background: rgba(11, 13, 16, 0.78);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+}
+.screen-category-selected .icon-box {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1.5px solid #E8360E;
+  background: rgba(232, 54, 14, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #E8360E;
+}
+.screen-category-selected .category-label {
+  flex: 1;
+  font-family: 'Nexa Heavy', 'Manrope', system-ui, sans-serif;
+  font-weight: 900;
+  font-size: 14px;
+  color: #fff;
+  letter-spacing: -0.005em;
+}
+.screen-category-selected .caret-amber {
+  color: #FF9900;
+  flex-shrink: 0;
+}
+
+/* Spacer that lets the map breathe between top cards and bottom carousel */
+.map-spacer {
+  flex: 1;
+  min-height: 60px;
+}
+
+/* ==========================================================================
+   Map screen — filters dropdown
+   ========================================================================== */
+.screen-filters {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(11, 13, 16, 0.82);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  font-family: 'Nexa Heavy', 'Manrope', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 900;
+  color: #E8360E;
+  letter-spacing: 0.2em;
+}
+.screen-filters svg {
+  color: #FF9900;
+}
+
+/* ==========================================================================
+   Map screen — section label
+   ========================================================================== */
+.section-label {
+  font-family: 'Nexa Heavy', 'Manrope', system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 900;
+  color: #E8360E;
+  letter-spacing: 0.22em;
+  margin: 8px 4px 4px;
+  padding-left: 6px;
+}
+
+/* ==========================================================================
+   Map screen — decorative brand-red arc behind cards
+   ========================================================================== */
+.phone-arc-bg {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220%;
+  height: 200px;
+  pointer-events: none;
+  z-index: 4;
+  overflow: visible;
+}
+
+/* ==========================================================================
+   Map screen — restaurant horizontal carousel
+   ========================================================================== */
+.rest-carousel {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0 28px;
+  position: relative;
+  z-index: 6;
+  margin-right: -12px; /* let cards bleed off-screen on right edge */
+}
+.rest-card {
+  flex: 0 0 158px;
+  background: rgba(11, 13, 16, 0.92);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(232, 54, 14, 0.30);
+  border-radius: 14px;
+  padding: 11px;
+  position: relative;
+  color: #fff;
+}
+.rest-card.active {
+  border-color: #E8360E;
+  box-shadow: 0 0 18px rgba(232, 54, 14, 0.55);
+}
+.rest-card.peeking {
+  flex: 0 0 88px;
+}
+.rest-card .rest-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  min-height: 22px;
+}
+.rest-card .pin-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #E8360E;
+  color: #fff;
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+}
+.rest-card .heart-icon {
+  color: #E8360E;
+}
+.rest-card h4 {
+  margin: 0 0 3px;
+  font-family: 'Nexa Heavy', 'Manrope', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.005em;
+  line-height: 1.15;
+}
+.rest-card .cuisine {
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 9.5px;
+  color: #E8360E;
+  margin: 0 0 2px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rest-card .location {
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 10px;
+  color: #fff;
+  font-weight: 500;
+  margin: 0;
+}
+.rest-divider {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin: 8px 0 6px;
+}
+.rest-card .featured {
+  font-family: 'Nexa Heavy', 'Manrope', system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+/* Apple Maps attribution at bottom */
+.screen-attribution {
+  position: absolute;
+  bottom: 16px;
+  left: 14px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Manrope', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.55);
+}
+.screen-attribution .legal {
+  color: rgba(255,255,255,0.3);
+  margin-left: 6px;
+}
+
+/* ----- Fade-in on scroll (driven by JS adding .is-visible) ----- */
+[data-fade] {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 600ms ease-out, transform 600ms ease-out;
+}
+
+[data-fade].is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+[data-fade-delay="1"] { transition-delay: 80ms; }
+[data-fade-delay="2"] { transition-delay: 160ms; }
+[data-fade-delay="3"] { transition-delay: 240ms; }
+
+/* ----- Reduced motion ----- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  [data-fade] {
+    opacity: 1;
+    transform: none;
+  }
+
+  [data-showcase-phone] {
+    transform: rotateX(0deg) scale(1) !important;
+  }
+
+  [data-showcase-header] {
+    transform: translateY(0) !important;
+  }
+}

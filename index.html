@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pomodoro — Sabe si hay mesa antes de salir de casa</title>
+<meta name="description" content="Pomodoro te muestra en tiempo real qué tan lleno está tu restaurante favorito en Medellín. Disponible, fila o lleno. Sin sorpresas." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Manrope acts as a free fallback while Nexa (.woff2) loads from /fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          // Dark theme: page bg is near-black, "ink" is now warm-white text
+          cream: '#0A0707',          // page background (near-black, slight warm cast)
+          ink: '#F5EFEA',            // primary text (warm off-white)
+          muted: '#9F948B',          // secondary text on dark
+          line: '#1F1816',           // subtle dividers on dark
+          surface: '#13100E',        // dark cards
+          surfaceRaised: '#1F1816',  // hover / lifted cards
+          night: '#000000',          // pure black accent
+          // ember scale rebuilt around the new brand red-orange #E8360E
+          ember: { 50:'#FFF1ED', 100:'#FFDED2', 200:'#FFB8A1', 300:'#FF8A66', 400:'#F45A33', 500:'#E8360E', 600:'#D32E0C', 700:'#C52E0C', 800:'#9A2308', 900:'#7C1B05' },
+          // semantic aliases
+          brand: '#E8360E',
+          brandPressed: '#C52E0C',
+          // amber accent for alternate CTAs and decorative pops
+          secondary: { DEFAULT:'#FF9900', 50:'#FFF8E6', 100:'#FFE9B8', 200:'#FFD17A', 500:'#FF9900', 600:'#E68A00', 700:'#B36C00' },
+          available: '#10B981',
+          queue: '#F59E0B',
+          busy: '#EF4444',
+        },
+        fontFamily: {
+          display: ['"Nexa Heavy"', '"Manrope"', 'system-ui', 'sans-serif'],
+          sans: ['"Manrope"', 'system-ui', 'sans-serif'],
+          airy: ['"Nexa ExtraLight"', '"Manrope"', 'system-ui', 'sans-serif'],
+        },
+        boxShadow: {
+          soft: '0 1px 2px rgba(26,20,16,0.04), 0 8px 24px -12px rgba(26,20,16,0.10)',
+          lift: '0 2px 4px rgba(26,20,16,0.04), 0 24px 48px -16px rgba(26,20,16,0.18)',
+          phone: '0 30px 80px -20px rgba(122,45,18,0.35), 0 12px 30px -10px rgba(26,20,16,0.25)',
+        },
+        borderRadius: { '4xl':'2rem', '5xl':'2.5rem' },
+        keyframes: {
+          pulseDot: { '0%,100%':{opacity:1, transform:'scale(1)'}, '50%':{opacity:.4, transform:'scale(.85)'} },
+          pulseRing: { '0%':{transform:'scale(1)', opacity:.6}, '100%':{transform:'scale(2.4)', opacity:0} },
+          floaty: { '0%,100%':{transform:'translateY(0)'}, '50%':{transform:'translateY(-6px)'} },
+        },
+        animation: {
+          pulseDot: 'pulseDot 1.6s ease-in-out infinite',
+          pulseRing: 'pulseRing 1.8s ease-out infinite',
+          floaty: 'floaty 6s ease-in-out infinite',
+        },
+      }
+    }
+  }
+</script>
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="bg-cream text-ink antialiased">
+
+<!-- ====== NAV ====== -->
+<header class="sticky top-0 z-40 backdrop-blur-md bg-cream/80 border-b border-line/70">
+  <nav class="max-w-7xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
+    <a href="#" class="flex items-center" aria-label="Pomodoro — Inicio">
+      <span class="font-display text-xl text-brand tracking-[0.08em] leading-none">POMODORO</span>
+    </a>
+    <div class="hidden md:flex items-center gap-8 text-sm font-medium text-muted">
+      <a href="#features" data-spy-link class="hover:text-ink transition-colors">Features</a>
+      <a href="#how" data-spy-link class="hover:text-ink transition-colors">Cómo funciona</a>
+      <a href="#neighborhoods" data-spy-link class="hover:text-ink transition-colors">Barrios</a>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="#download" class="hidden sm:inline-flex items-center gap-2 rounded-full bg-brand text-white px-4 py-2 text-sm font-semibold hover:bg-brandPressed transition-colors duration-200">
+        Descargar
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+      <button data-menu-btn type="button" aria-controls="mobile-menu" aria-expanded="false" aria-label="Abrir menú" class="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-full ring-soft bg-surface hover:bg-surfaceRaised transition-colors">
+        <svg data-menu-icon="open" class="w-5 h-5 text-ink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        <svg data-menu-icon="close" class="hidden w-5 h-5 text-ink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+  </nav>
+  <!-- Mobile menu panel -->
+  <div id="mobile-menu" data-menu-panel class="hidden md:hidden flex-col gap-1 px-5 pb-5 pt-2 bg-cream border-b border-line">
+    <a href="#features" class="px-3 py-3 rounded-xl text-base font-semibold text-ink hover:bg-surface transition-colors">Features</a>
+    <a href="#how" class="px-3 py-3 rounded-xl text-base font-semibold text-ink hover:bg-surface transition-colors">Cómo funciona</a>
+    <a href="#neighborhoods" class="px-3 py-3 rounded-xl text-base font-semibold text-ink hover:bg-surface transition-colors">Barrios</a>
+    <a href="#download" class="mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-brand text-white px-4 py-3 text-sm font-semibold">
+      Descargar
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+</header>
+
+<!-- ====== HERO ====== -->
+<section class="relative overflow-hidden gradient-warm">
+  <div class="absolute inset-0 grain opacity-60 pointer-events-none" aria-hidden="true"></div>
+  <div class="max-w-7xl mx-auto px-5 sm:px-8 pt-14 pb-20 md:pt-24 md:pb-28 grid md:grid-cols-12 gap-10 md:gap-8 items-center relative">
+
+    <!-- Left: copy -->
+    <div class="md:col-span-7">
+      <div class="inline-flex items-center gap-2 rounded-full bg-surface/80 backdrop-blur-md ring-soft px-3 py-1.5 text-xs sm:text-sm font-semibold text-secondary mb-6">
+        <span class="relative flex w-2 h-2">
+          <span class="absolute inline-flex w-full h-full rounded-full bg-secondary animate-pulseRing"></span>
+          <span class="relative inline-flex w-2 h-2 rounded-full bg-secondary"></span>
+        </span>
+        Llega a Medellín · Beta abierta
+      </div>
+
+      <h1 class="font-display text-[2.6rem] leading-[1.05] sm:text-6xl md:text-[4.25rem] md:leading-[1.02] tracking-tight">
+        Sabe si hay mesa
+        <span class="block">
+          <span class="text-ember-600">antes</span> de salir.
+        </span>
+      </h1>
+
+      <p class="mt-6 max-w-xl text-lg sm:text-xl text-muted leading-relaxed">
+        Pomodoro te muestra en tiempo real si tu restaurante favorito está disponible, tiene fila, o está lleno. Nunca más planches el plan.
+      </p>
+
+      <!-- Store badges -->
+      <div class="mt-8 flex flex-col sm:flex-row gap-3">
+        <a href="#" aria-label="Descargar en App Store" class="group flex items-center gap-3 rounded-2xl bg-ink text-night px-5 py-3.5 hover:bg-white transition-colors duration-200 shadow-soft">
+          <svg viewBox="0 0 24 24" class="w-7 h-7" fill="currentColor" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.45 2.22-1.18 3.01-.78.85-2.05 1.5-3.07 1.42-.13-1.12.45-2.27 1.16-3.01.79-.83 2.13-1.45 3.09-1.42zM20.5 17.04c-.55 1.27-.81 1.83-1.52 2.96-.99 1.55-2.39 3.48-4.13 3.5-1.55.02-1.95-1-4.05-.99-2.1.01-2.54 1.01-4.09.99-1.74-.02-3.07-1.77-4.06-3.31-2.78-4.32-3.07-9.39-1.36-12.08 1.21-1.92 3.13-3.04 4.93-3.04 1.84 0 3 .99 4.52.99 1.47 0 2.37-1 4.5-1 1.61 0 3.32.88 4.55 2.39-4 2.18-3.35 7.88-.29 9.59z"/></svg>
+          <span class="flex flex-col leading-tight">
+            <span class="text-[0.7rem] uppercase tracking-wider text-night/60">Descargar en</span>
+            <span class="font-display text-lg">App Store</span>
+          </span>
+        </a>
+        <a href="#" aria-label="Descargar en Google Play" class="group flex items-center gap-3 rounded-2xl bg-surface text-ink ring-soft px-5 py-3.5 hover:bg-surfaceRaised transition-colors duration-200 shadow-soft">
+          <svg viewBox="0 0 24 24" class="w-7 h-7" aria-hidden="true">
+            <path fill="#34A853" d="M3.6 20.5l10-10-10-10c-.4.3-.6.8-.6 1.4v17.2c0 .6.2 1.1.6 1.4z" opacity=".95"/>
+            <path fill="#FBBC04" d="M17.4 14.3l-3.8-3.8 3.8-3.8 4.4 2.5c.9.5.9 1.8 0 2.3l-4.4 2.8z"/>
+            <path fill="#EA4335" d="M3.6 20.5c.4.4 1 .4 1.5.1l12.3-7-3.8-3.8-10 10.7z"/>
+            <path fill="#4285F4" d="M3.6 0.5c-.4.3-.6.8-.6 1.4v17.2c0 .3 0 .5.1.7l10-10.6L3.6 0.5z" opacity=".7"/>
+          </svg>
+          <span class="flex flex-col leading-tight">
+            <span class="text-[0.7rem] uppercase tracking-wider text-muted">Disponible en</span>
+            <span class="font-display text-lg">Google Play</span>
+          </span>
+        </a>
+      </div>
+
+      <!-- Trust row -->
+      <div class="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-muted">
+        <div class="flex items-center gap-2">
+          <div class="flex -space-x-2">
+            <span class="w-7 h-7 rounded-full bg-ember-300 ring-2 ring-cream"></span>
+            <span class="w-7 h-7 rounded-full bg-ember-500 ring-2 ring-cream"></span>
+            <span class="w-7 h-7 rounded-full bg-ember-700 ring-2 ring-cream"></span>
+            <span class="w-7 h-7 rounded-full bg-ink ring-2 ring-cream"></span>
+          </div>
+          <span>+<span class="font-bold text-ink" data-counter="8500">0</span> foodies en lista de espera</span>
+        </div>
+        <div class="hidden sm:flex items-center gap-1.5">
+          <svg viewBox="0 0 24 24" class="w-5 h-5 text-amber-400" fill="currentColor" aria-hidden="true"><path d="M12 2l2.9 6.9 7.4.6-5.6 4.9 1.7 7.3L12 17.8 5.6 21.7l1.7-7.3L1.7 9.5l7.4-.6L12 2z"/></svg>
+          <span class="font-bold text-ink">4.8</span><span>/5 en early access</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: phone mockup -->
+    <div class="md:col-span-5 relative">
+      <div class="relative mx-auto max-w-[300px] sm:max-w-[340px] animate-floaty motion-reduce:animate-none">
+        <!-- floating chips -->
+        <div class="hidden sm:flex absolute -left-10 top-16 z-10 items-center gap-2 bg-surface text-ink rounded-2xl px-3 py-2 shadow-lift ring-soft">
+          <span class="w-2.5 h-2.5 rounded-full bg-available"></span>
+          <span class="text-xs font-semibold">Mesa libre · 2 min</span>
+        </div>
+        <div class="hidden sm:flex absolute -right-6 bottom-24 z-10 items-center gap-2 bg-surface text-ink rounded-2xl px-3 py-2 shadow-lift ring-soft">
+          <svg class="w-4 h-4 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span class="text-xs font-semibold">Provenza</span>
+        </div>
+
+        <!-- phone -->
+        <div class="relative rounded-[2.8rem] bg-night p-3 shadow-phone">
+          <div class="rounded-[2.2rem] bg-cream overflow-hidden aspect-[9/19] relative flex flex-col">
+            <!-- notch -->
+            <div class="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-5 rounded-full bg-night z-20"></div>
+
+            <!-- status bar -->
+            <div class="screen-statusbar">
+              <span class="left">
+                <span>11:44</span>
+                <span class="camera-pill" aria-hidden="true"></span>
+              </span>
+              <span class="right">
+                <svg class="sb-signal" viewBox="0 0 18 4" fill="currentColor" aria-hidden="true"><circle cx="2" cy="2" r="1.5"/><circle cx="7" cy="2" r="1.5"/><circle cx="12" cy="2" r="1.5"/><circle cx="17" cy="2" r="1.5"/></svg>
+                <svg class="sb-wifi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 18.5l3-3a4 4 0 00-6 0l3 3zm-6-6a8.5 8.5 0 0112 0l1.5-1.5a10.6 10.6 0 00-15 0L6 12.5zm-3-3a12.7 12.7 0 0118 0L22.5 8a14.8 14.8 0 00-21 0L3 9.5z"/></svg>
+                <span class="battery">80</span>
+              </span>
+            </div>
+
+            <!-- SALIR -->
+            <div class="px-6 mt-3">
+              <span class="font-display text-[10px] text-brand tracking-[0.3em]">SALIR</span>
+            </div>
+
+            <!-- centered title -->
+            <div class="px-6 mt-3 text-center">
+              <p class="font-display text-[13px] text-brand tracking-[0.25em]">POMODORO</p>
+              <h3 class="font-display text-lg text-ink leading-tight mt-2.5">¿Qué quieres<br/>hacer hoy?</h3>
+            </div>
+
+            <!-- Dial -->
+            <div class="flex-1 flex items-center justify-center pt-2">
+              <div class="hero-dial relative w-[240px] h-[240px]">
+                <svg class="absolute inset-0 w-full h-full" viewBox="-120 -120 240 240" fill="none" aria-hidden="true">
+                  <!-- amber arc + endpoint -->
+                  <path d="M -68 -86 A 110 110 0 0 1 88 -65" stroke="#FF9900" stroke-width="2.5" stroke-linecap="round"/>
+                  <circle cx="88" cy="-65" r="4" fill="#FF9900"/>
+
+                  <!-- 24 tick marks -->
+                  <g stroke="#E8360E" stroke-width="1.4" stroke-linecap="round" opacity="0.55">
+                    <line x1="0" y1="-108" x2="0" y2="-99"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(15)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(30)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(45)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(60)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(75)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(90)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(105)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(120)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(135)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(150)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(165)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(180)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(195)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(210)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(225)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(240)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(255)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(270)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(285)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(300)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(315)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(330)"/>
+                    <line x1="0" y1="-108" x2="0" y2="-99" transform="rotate(345)"/>
+                  </g>
+
+                  <!-- concentric rings -->
+                  <circle cx="0" cy="0" r="78" stroke="#E8360E" stroke-opacity="0.18" stroke-width="0.8"/>
+                  <circle cx="0" cy="0" r="62" stroke="#E8360E" stroke-opacity="0.12" stroke-width="0.6"/>
+
+                  <!-- center disc background -->
+                  <circle cx="0" cy="0" r="50" fill="rgba(15,12,10,0.95)" stroke="#E8360E" stroke-opacity="0.5" stroke-width="1"/>
+                </svg>
+
+                <!-- Top: target (active) -->
+                <span class="dial-icon active" style="--x:0px;--y:-86px;" aria-hidden="true">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg>
+                </span>
+                <!-- Upper-right: QR -->
+                <span class="dial-icon" style="--x:74px;--y:-43px;" aria-hidden="true">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3M17 14v3M14 17h3M19 17v2M19 21v0M14 21h0M17 19v2M19 19h2"/></svg>
+                </span>
+                <!-- Lower-right: calendar -->
+                <span class="dial-icon" style="--x:74px;--y:43px;" aria-hidden="true">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+                </span>
+                <!-- Bottom: profile -->
+                <span class="dial-icon" style="--x:0px;--y:86px;" aria-hidden="true">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+                </span>
+                <!-- Lower-left: heart -->
+                <span class="dial-icon" style="--x:-74px;--y:43px;" aria-hidden="true">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </span>
+                <!-- Upper-left: settings -->
+                <span class="dial-icon" style="--x:-74px;--y:-43px;" aria-hidden="true">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </span>
+
+                <!-- Center text -->
+                <div class="dial-center">
+                  <span class="dial-center-main">ANTOJARME<br/>ALGO</span>
+                  <span class="dial-center-sub">EMPEZAR</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- bottom subtitle -->
+            <div class="text-center pb-12 px-6">
+              <p class="text-muted text-[11px] font-bold">Encuentra el restaurante perfecto</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== SHOWCASE (scroll-driven 3D unfold) ====== -->
+<section id="showcase" data-showcase class="relative h-[60rem] md:h-[80rem] flex items-center justify-center px-4 sm:px-8 md:px-20 overflow-hidden">
+  <div class="w-full" style="perspective: 1200px;">
+
+    <!-- Animated header -->
+    <div data-showcase-header class="max-w-5xl mx-auto text-center mb-10 md:mb-14 will-change-transform">
+      <p class="text-sm font-bold text-ember-600 uppercase tracking-wider">El producto</p>
+      <h2 class="mt-3 font-display text-4xl sm:text-5xl md:text-7xl leading-[1.02] tracking-tight">
+        Toda Medellín,
+        <span class="block text-ember-600">en una pantalla.</span>
+      </h2>
+      <p class="mt-5 text-base sm:text-lg text-muted max-w-xl mx-auto leading-relaxed">
+        Mira qué está abierto, qué tiene fila y qué está lleno. Filtra por barrio, por tipo de cocina, o por tus favoritos.
+      </p>
+    </div>
+
+    <!-- Animated phone -->
+    <div data-showcase-phone class="mx-auto max-w-[320px] sm:max-w-[360px] will-change-transform">
+      <div class="phone-glow relative rounded-[2.8rem] bg-night p-3">
+       <div class="rounded-[2.2rem] bg-cream overflow-hidden aspect-[9/19] relative">
+        <!-- notch -->
+        <div class="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-5 rounded-full bg-night z-30"></div>
+
+        <!-- Apple Maps dark background -->
+        <div class="map-dark" aria-hidden="true">
+          <span class="map-label" style="top:14%; left:8%;">San Pedro</span>
+          <span class="map-label" style="top:9%; left:55%;">Entrerríos</span>
+          <span class="map-label" style="top:24%; right:14%;">Bello</span>
+          <span class="map-label" style="top:37%; left:50%; transform:translateX(-50%);">Medellín</span>
+          <span class="map-label" style="top:48%; left:8%;">Heliconia</span>
+          <span class="map-label" style="top:60%; right:8%;">Rionegro</span>
+          <span class="map-label" style="top:72%; left:14%;">Itagüí</span>
+          <span class="map-label" style="top:86%; left:42%;">Caldas</span>
+          <span class="map-label" style="top:92%; right:18%;">La Ceja</span>
+          <span class="map-pin-dot" style="top:30%; left:38%;"></span>
+          <span class="map-pin-dot" style="top:46%; left:62%;"></span>
+          <span class="map-pin-dot" style="top:78%; left:30%;"></span>
+        </div>
+
+        <!-- Foreground content -->
+        <div class="screen-content">
+          <!-- Status bar -->
+          <div class="screen-statusbar">
+            <span class="left">
+              <span>11:44</span>
+              <span class="camera-pill" aria-hidden="true"></span>
+            </span>
+            <span class="right">
+              <svg class="sb-signal" viewBox="0 0 18 4" fill="currentColor" aria-hidden="true"><circle cx="2" cy="2" r="1.5"/><circle cx="7" cy="2" r="1.5"/><circle cx="12" cy="2" r="1.5"/><circle cx="17" cy="2" r="1.5"/></svg>
+              <svg class="sb-wifi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 18.5l3-3a4 4 0 00-6 0l3 3zm-6-6a8.5 8.5 0 0112 0l1.5-1.5a10.6 10.6 0 00-15 0L6 12.5zm-3-3a12.7 12.7 0 0118 0L22.5 8a14.8 14.8 0 00-21 0L3 9.5z"/></svg>
+              <span class="battery">80</span>
+            </span>
+          </div>
+
+          <!-- Tabs row -->
+          <div class="screen-tabs">
+            <span class="tab-active">INICIO</span>
+            <button class="selector" type="button">
+              VALLE ABURRÁ
+              <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 10l5 5 5-5z"/></svg>
+            </button>
+          </div>
+
+          <!-- Greeting card -->
+          <div class="screen-card screen-greeting">
+            <div class="eyebrow">HOLA, BIENVENIDO</div>
+            <h3>¿De qué estás<br/>antojado hoy?</h3>
+          </div>
+
+          <!-- Search bar -->
+          <div class="screen-card screen-search">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+            <span>Buscar restaurante por nombre...</span>
+          </div>
+
+          <!-- Active dropdown -->
+          <div class="screen-dropdown">
+            <span>Selecciona tu antojo</span>
+            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 14l5-5 5 5z"/></svg>
+          </div>
+
+          <!-- Categories list -->
+          <div class="screen-card screen-categories">
+            <div class="screen-cat">
+              <span class="icon-box">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11c0-3 4-5 8-5s8 2 8 5"/><path d="M4 14h16"/><path d="M4 17h16"/></svg>
+              </span>
+              Hamburguesa
+            </div>
+            <div class="screen-cat">
+              <span class="icon-box">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12c0-3 3-5 7-5s7 2 7 5-3 5-7 5-7-2-7-5z"/><path d="M17 9l4-4"/><path d="M19 7l2 2"/></svg>
+              </span>
+              Cortes de Carne
+            </div>
+            <div class="screen-cat">
+              <span class="icon-box">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 18H3z"/><circle cx="10" cy="14" r="0.8" fill="currentColor"/><circle cx="14" cy="13" r="0.8" fill="currentColor"/><circle cx="12" cy="17" r="0.8" fill="currentColor"/></svg>
+              </span>
+              Pizza
+            </div>
+            <div class="screen-cat">
+              <span class="icon-box">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14c0-4 4-7 9-7s9 3 9 7"/><path d="M3 14h18"/><path d="M7 14c1 1 2 2 2 4"/><path d="M15 14c-1 1-2 2-2 4"/></svg>
+              </span>
+              Comida Mexicana
+            </div>
+            <div class="screen-cat">
+              <span class="icon-box">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="12" rx="9" ry="4"/><ellipse cx="12" cy="12" rx="3" ry="2" fill="currentColor"/></svg>
+              </span>
+              Sushi
+            </div>
+          </div>
+        </div>
+
+        <!-- Apple Maps attribution -->
+        <div class="screen-attribution" aria-hidden="true">
+          <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+          <span>Maps</span>
+          <span class="legal">Legal</span>
+        </div>
+       </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ====== FEATURES ====== -->
+<section id="features" class="py-20 sm:py-28">
+  <div class="max-w-7xl mx-auto px-5 sm:px-8">
+    <div class="max-w-2xl">
+      <p class="text-sm font-bold text-ember-600 uppercase tracking-wider">Qué hace Pomodoro</p>
+      <h2 class="mt-3 font-display text-4xl sm:text-5xl md:text-6xl leading-[1.05] tracking-tight">Toda la información, <span class="text-ember-600">cero sorpresas.</span></h2>
+      <p class="mt-5 text-lg text-muted">Datos en vivo, gente real, pinging cada minuto. Tú decides a dónde ir.</p>
+    </div>
+
+    <div class="mt-12 sm:mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+
+      <!-- Feature 1: Real-time -->
+      <article data-fade class="bg-surface rounded-3xl p-6 sm:p-7 ring-soft hover:bg-surfaceRaised hover:-translate-y-1 hover:shadow-lift transition duration-300">
+        <div class="w-12 h-12 rounded-2xl bg-ember-500 text-white flex items-center justify-center shadow-soft">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <h3 class="mt-5 font-display text-xl">Estado en vivo</h3>
+        <p class="mt-2 text-muted leading-relaxed">Disponible, fila o lleno. Actualizado cada minuto por la comunidad y el restaurante.</p>
+        <div class="mt-5 flex flex-wrap gap-1.5">
+          <span class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-available"></span>Libre</span>
+          <span class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-queue"></span>Fila</span>
+          <span class="inline-flex items-center gap-1.5 bg-rose-50 text-rose-700 text-xs font-bold px-2.5 py-1 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-busy"></span>Lleno</span>
+        </div>
+      </article>
+
+      <!-- Feature 2: Favorites -->
+      <article data-fade data-fade-delay="1" class="bg-surface rounded-3xl p-6 sm:p-7 ring-soft hover:bg-surfaceRaised hover:-translate-y-1 hover:shadow-lift transition duration-300">
+        <div class="w-12 h-12 rounded-2xl bg-night text-ink ring-soft flex items-center justify-center shadow-soft">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 10-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"/></svg>
+        </div>
+        <h3 class="mt-5 font-display text-xl">Favoritos</h3>
+        <p class="mt-2 text-muted leading-relaxed">Guarda tus spots de cabecera y mira su estado en una sola pantalla. Sin scroll infinito.</p>
+        <div class="mt-5 flex -space-x-2">
+          <span class="w-8 h-8 rounded-xl bg-ember-200 ring-2 ring-white"></span>
+          <span class="w-8 h-8 rounded-xl bg-ember-400 ring-2 ring-white"></span>
+          <span class="w-8 h-8 rounded-xl bg-ember-600 ring-2 ring-white"></span>
+          <span class="w-8 h-8 rounded-xl bg-night ring-2 ring-line text-ink text-xs font-bold flex items-center justify-center">+9</span>
+        </div>
+      </article>
+
+      <!-- Feature 3: Smart notifications -->
+      <article data-fade data-fade-delay="2" class="bg-surface rounded-3xl p-6 sm:p-7 ring-soft hover:bg-surfaceRaised hover:-translate-y-1 hover:shadow-lift transition duration-300">
+        <div class="w-12 h-12 rounded-2xl bg-secondary-100 text-secondary-700 flex items-center justify-center shadow-soft">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+        </div>
+        <h3 class="mt-5 font-display text-xl">Avisos inteligentes</h3>
+        <p class="mt-2 text-muted leading-relaxed">"Carmen está libre ahora". Recibe un ping solo cuando algo que te importa cambia.</p>
+        <div class="mt-5 bg-ember-50 rounded-2xl p-3 flex items-center gap-2.5">
+          <span class="w-2 h-2 rounded-full bg-ember-500 animate-pulseDot"></span>
+          <span class="text-xs font-semibold text-ember-800">Mesa libre en Carmen · ahora</span>
+        </div>
+      </article>
+
+      <!-- Feature 4: Neighborhood discovery -->
+      <article data-fade data-fade-delay="3" class="bg-surface rounded-3xl p-6 sm:p-7 ring-soft hover:bg-surfaceRaised hover:-translate-y-1 hover:shadow-lift transition duration-300">
+        <div class="w-12 h-12 rounded-2xl bg-ember-700 text-white flex items-center justify-center shadow-soft">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <h3 class="mt-5 font-display text-xl">Descubre tu barrio</h3>
+        <p class="mt-2 text-muted leading-relaxed">Filtra por El Poblado, Laureles, Envigado o Provenza. Encuentra el spot perfecto cerca.</p>
+        <div class="mt-5 flex flex-wrap gap-1.5">
+          <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-cream ring-soft">Poblado</span>
+          <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-cream ring-soft">Laureles</span>
+          <span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-cream ring-soft">+2</span>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- ====== ASÍ SE VE (interactive arc carousel demo) ====== -->
+<section id="preview" class="relative py-20 sm:py-28 overflow-hidden">
+  <div class="glow-spot brand" style="top:10%; right:-100px; width:400px; height:400px;"></div>
+  <div class="max-w-7xl mx-auto px-5 sm:px-8 grid lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+
+    <!-- Left: copy -->
+    <div class="lg:col-span-5" data-fade>
+      <p class="text-sm font-bold text-brand uppercase tracking-wider">Así se ve</p>
+      <h2 class="mt-3 font-display text-4xl sm:text-5xl md:text-6xl leading-[1.02] tracking-tight">
+        Desliza, decide,
+        <span class="block text-brand">llega.</span>
+      </h2>
+      <p class="mt-5 text-lg text-muted leading-relaxed max-w-md">
+        Los spots más cercanos, en una sola pantalla. Un swipe te muestra el siguiente. Estado, distancia y rating de un vistazo.
+      </p>
+      <ul class="mt-8 space-y-4">
+        <li class="flex items-start gap-3">
+          <span class="mt-0.5 inline-flex w-6 h-6 rounded-full bg-brand/10 text-brand items-center justify-center flex-shrink-0">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>
+          </span>
+          <span class="text-base text-ink/85"><strong>Estado en vivo</strong> de cada lugar</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="mt-0.5 inline-flex w-6 h-6 rounded-full bg-secondary-100 text-secondary-700 items-center justify-center flex-shrink-0">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </span>
+          <span class="text-base text-ink/85"><strong>Tiempo de espera real</strong>, sin adivinar</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="mt-0.5 inline-flex w-6 h-6 rounded-full bg-emerald-50 text-emerald-700 items-center justify-center flex-shrink-0">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l2.9 6.9 7.4.6-5.6 4.9 1.7 7.3L12 17.8 5.6 21.7l1.7-7.3L1.7 9.5l7.4-.6L12 2z"/></svg>
+          </span>
+          <span class="text-base text-ink/85"><strong>Distancia y rating</strong> de un vistazo</span>
+        </li>
+      </ul>
+      <p class="mt-8 text-sm text-muted flex items-center gap-2">
+        <svg class="w-4 h-4 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 12h10M11 6l-6 6 6 6M13 6l6 6-6 6"/></svg>
+        Arrastra las tarjetas o tócalas para explorar
+      </p>
+    </div>
+
+    <!-- Right: phone with the actual app screen -->
+    <div class="lg:col-span-7 flex justify-center" data-fade data-fade-delay="1">
+      <div class="phone-frame">
+        <div class="phone-screen">
+
+          <!-- Apple Maps dark background with city labels and pin clusters -->
+          <div class="map-dark" aria-hidden="true">
+            <span class="map-label" style="top:3%; left:36%;">San José de<br/>la Montaña</span>
+            <span class="map-label" style="top:5%; right:6%;">Angos</span>
+            <span class="map-label" style="top:18%; left:5%;">Buriticá</span>
+            <span class="map-label" style="top:21%; right:14%;">Santa Rosa de Osos</span>
+            <span class="map-label" style="top:32%; left:14%;">Santafé de<br/>Antioquia</span>
+            <span class="map-label" style="top:34%; right:24%;">Entrerríos</span>
+            <span class="map-label" style="top:43%; left:32%;">San Jerónimo</span>
+            <span class="map-label" style="top:43%; right:18%;">Don Matías</span>
+            <span class="map-label" style="top:46%; left:54%;">San Pedro</span>
+            <span class="map-label" style="top:55%; left:18%;">Ebéjico</span>
+            <span class="map-label" style="top:62%; right:34%;">Guarne</span>
+            <span class="map-label" style="top:62%; right:8%;">San Vi</span>
+            <span class="map-label" style="top:71%; right:6%;">Rionegro</span>
+            <span class="map-label" style="top:81%; right:14%;">La Ceja</span>
+            <span class="map-label" style="top:87%; right:18%;">La Union</span>
+            <span class="map-label" style="top:75%; left:32%;">Fredonia</span>
+            <span class="map-label" style="top:84%; left:6%;">Hispania</span>
+            <span class="map-label" style="top:84%; left:24%;">Jericó</span>
+            <span class="map-label" style="top:91%; left:14%;">Andes</span>
+            <span class="map-label" style="top:92%; left:36%;">Valparaíso</span>
+            <span class="map-label" style="top:92%; right:30%;">Aguadas</span>
+            <span class="map-label" style="top:78%; right:54%;">Jardín</span>
+            <span class="map-label" style="top:90%; right:8%;">Montebello</span>
+
+            <!-- Pin clusters -->
+            <span class="pin-cluster" style="top:54%; left:50%;">15</span>
+            <span class="pin-cluster" style="top:60%; left:43%;">9</span>
+            <span class="pin-cluster active" style="top:66%; left:51%;">1</span>
+            <span class="pin-cluster" style="top:69%; left:40%;">12</span>
+          </div>
+
+          <!-- Decorative brand-red arc behind cards -->
+          <svg class="phone-arc-bg" viewBox="-200 -200 400 200" aria-hidden="true">
+            <circle cx="0" cy="0" r="195" stroke="#E8360E" stroke-width="2.5" fill="none" opacity="0.85"/>
+            <circle cx="0" cy="0" r="170" stroke="#E8360E" stroke-width="1" fill="none" opacity="0.4"/>
+          </svg>
+
+          <!-- Foreground content -->
+          <div class="screen-content">
+
+            <!-- Status bar -->
+            <div class="screen-statusbar">
+              <span class="left">
+                <span>11:44</span>
+                <span class="camera-pill" aria-hidden="true"></span>
+              </span>
+              <span class="right">
+                <svg class="sb-signal" viewBox="0 0 18 4" fill="currentColor" aria-hidden="true"><circle cx="2" cy="2" r="1.5"/><circle cx="7" cy="2" r="1.5"/><circle cx="12" cy="2" r="1.5"/><circle cx="17" cy="2" r="1.5"/></svg>
+                <svg class="sb-wifi" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 18.5l3-3a4 4 0 00-6 0l3 3zm-6-6a8.5 8.5 0 0112 0l1.5-1.5a10.6 10.6 0 00-15 0L6 12.5zm-3-3a12.7 12.7 0 0118 0L22.5 8a14.8 14.8 0 00-21 0L3 9.5z"/></svg>
+                <span class="battery">80</span>
+              </span>
+            </div>
+
+            <!-- Tabs row -->
+            <div class="screen-tabs">
+              <span class="tab-active">INICIO</span>
+              <button class="selector" type="button">
+                VALLE ABURRÁ
+                <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 10l5 5 5-5z"/></svg>
+              </button>
+            </div>
+
+            <!-- Selected category -->
+            <div class="screen-category-selected">
+              <span class="icon-box">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11c0-3 4-5 8-5s8 2 8 5"/><path d="M4 14h16"/><path d="M4 17h16"/></svg>
+              </span>
+              <span class="category-label">Hamburguesa</span>
+              <svg class="caret-amber w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 10l5 5 5-5z"/></svg>
+            </div>
+
+            <!-- Spacer (map shows through here) -->
+            <div class="map-spacer"></div>
+
+            <!-- Filters dropdown -->
+            <div class="screen-filters">
+              <span>FILTROS</span>
+              <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 10l5 5 5-5z"/></svg>
+            </div>
+
+            <!-- Section label -->
+            <p class="section-label">EN EL VALLE DE ABURRÁ</p>
+
+            <!-- Restaurant horizontal carousel -->
+            <div class="rest-carousel">
+              <article class="rest-card active">
+                <div class="rest-top">
+                  <span class="pin-badge">1</span>
+                  <svg class="heart-icon w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </div>
+                <h4>Bramante</h4>
+                <p class="cuisine">Hamburguesas artesanales d…</p>
+                <p class="location">El Poblado</p>
+                <div class="rest-divider"></div>
+                <p class="featured">★ Burger Bramante (…</p>
+              </article>
+              <article class="rest-card">
+                <div class="rest-top">
+                  <span></span>
+                  <svg class="heart-icon w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </div>
+                <h4>…Burgers</h4>
+                <p class="cuisine">burgers gourmet</p>
+                <p class="location">Bonito</p>
+                <div class="rest-divider"></div>
+                <p class="featured">ash Doble con q…</p>
+              </article>
+              <article class="rest-card peeking">
+                <div class="rest-top">
+                  <span class="pin-badge">3</span>
+                </div>
+                <h4>Pigas</h4>
+                <p class="cuisine">Cerdo · Br…</p>
+                <p class="location">Ciudad</p>
+              </article>
+            </div>
+          </div>
+
+          <!-- Apple Maps attribution -->
+          <div class="screen-attribution" aria-hidden="true">
+            <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+            <span>Maps</span>
+            <span class="legal">Jardín</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ====== HOW IT WORKS ====== -->
+<section id="how" class="relative py-20 sm:py-28 border-y border-line overflow-hidden">
+  <div class="glow-spot brand" style="bottom:-150px; left:-100px; width:400px; height:400px; opacity:0.25;"></div>
+  <div class="max-w-7xl mx-auto px-5 sm:px-8">
+    <div class="max-w-2xl">
+      <p class="text-sm font-bold text-ember-600 uppercase tracking-wider">Cómo funciona</p>
+      <h2 class="mt-3 font-display text-4xl sm:text-5xl md:text-6xl leading-[1.05] tracking-tight">Tres pasos. Cero filas.</h2>
+    </div>
+
+    <div class="mt-14 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-4 relative">
+      <!-- connecting line desktop -->
+      <div class="hidden md:block absolute top-9 left-[16%] right-[16%] h-px border-t-2 border-dashed border-ember-200" aria-hidden="true"></div>
+
+      <!-- Step 1 -->
+      <div data-fade class="relative bg-surface rounded-3xl p-6 sm:p-8 ring-soft">
+        <div class="relative inline-flex w-14 h-14 rounded-2xl bg-ember-500 text-white items-center justify-center font-display text-2xl shadow-soft z-10">1</div>
+        <h3 class="mt-5 font-display text-xl">Elige un barrio o un spot</h3>
+        <p class="mt-2 text-muted leading-relaxed">Busca por nombre o explora los 4 barrios foodie de Medellín.</p>
+      </div>
+
+      <!-- Step 2 -->
+      <div data-fade data-fade-delay="1" class="relative bg-surface rounded-3xl p-6 sm:p-8 ring-soft">
+        <div class="relative inline-flex w-14 h-14 rounded-2xl bg-secondary text-night items-center justify-center font-display text-2xl shadow-soft z-10">2</div>
+        <h3 class="mt-5 font-display text-xl">Mira el estado en vivo</h3>
+        <p class="mt-2 text-muted leading-relaxed">Verde, amarillo o rojo. Decides en cinco segundos sin llamar a nadie.</p>
+      </div>
+
+      <!-- Step 3 -->
+      <div data-fade data-fade-delay="2" class="relative bg-surface rounded-3xl p-6 sm:p-8 ring-soft">
+        <div class="relative inline-flex w-14 h-14 rounded-2xl bg-ember-700 text-white items-center justify-center font-display text-2xl shadow-soft z-10">3</div>
+        <h3 class="mt-5 font-display text-xl">Sal con la jugada hecha</h3>
+        <p class="mt-2 text-muted leading-relaxed">Llegas, te sientas, comes. Sin esperas eternas en la entrada.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====== NEIGHBORHOODS ====== -->
+<section id="neighborhoods" class="py-20 sm:py-28">
+  <div class="max-w-7xl mx-auto px-5 sm:px-8">
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
+      <div class="max-w-2xl">
+        <p class="text-sm font-bold text-ember-600 uppercase tracking-wider">Medellín en vivo</p>
+        <h2 class="mt-3 font-display text-4xl sm:text-5xl md:text-6xl leading-[1.05] tracking-tight">Los barrios donde se come.</h2>
+      </div>
+      <p class="text-muted md:max-w-sm md:text-right">Estamos arrancando con cobertura completa en los cuatro barrios donde más se come en la ciudad.</p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+
+      <!-- El Poblado -->
+      <article data-fade class="group relative overflow-hidden rounded-3xl ring-soft bg-gradient-to-br from-ember-500 to-ember-700 text-white p-6 aspect-[4/5] flex flex-col justify-between hover:-translate-y-1 transition duration-300">
+        <div class="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/10" aria-hidden="true"></div>
+        <div class="absolute -left-12 -bottom-12 w-48 h-48 rounded-full bg-white/5" aria-hidden="true"></div>
+        <div class="relative">
+          <div class="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-full text-[11px] font-bold">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulseDot"></span>
+            142 abiertos
+          </div>
+        </div>
+        <div class="relative">
+          <p class="text-xs font-semibold opacity-80 uppercase tracking-wider">Barrio 01</p>
+          <h3 class="font-display text-3xl mt-1 leading-tight">El Poblado</h3>
+          <p class="text-sm opacity-90 mt-1.5">Cosmopolita, sushi, autor</p>
+        </div>
+      </article>
+
+      <!-- Laureles -->
+      <article data-fade data-fade-delay="1" class="group relative overflow-hidden rounded-3xl ring-soft bg-surface text-ink p-6 aspect-[4/5] flex flex-col justify-between hover:-translate-y-1 hover:shadow-lift transition duration-300">
+        <div class="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-brand/15 blur-2xl" aria-hidden="true"></div>
+        <div class="relative">
+          <div class="inline-flex items-center gap-1.5 bg-ember-900/40 text-ember-300 px-2.5 py-1 rounded-full text-[11px] font-bold">
+            <span class="w-1.5 h-1.5 rounded-full bg-available"></span>
+            98 abiertos
+          </div>
+        </div>
+        <div class="relative">
+          <p class="text-xs font-semibold text-muted uppercase tracking-wider">Barrio 02</p>
+          <h3 class="font-display text-3xl mt-1 leading-tight">Laureles</h3>
+          <p class="text-sm text-muted mt-1.5">Local, brunch, café tercera ola</p>
+        </div>
+      </article>
+
+      <!-- Envigado -->
+      <article data-fade data-fade-delay="2" class="group relative overflow-hidden rounded-3xl ring-soft bg-night text-ink p-6 aspect-[4/5] flex flex-col justify-between hover:-translate-y-1 transition duration-300">
+        <div class="absolute -right-10 -bottom-10 w-48 h-48 rounded-full bg-brand/25 blur-2xl" aria-hidden="true"></div>
+        <div class="absolute right-6 top-6 w-2 h-2 rounded-full bg-secondary animate-pulseDot" aria-hidden="true"></div>
+        <div class="relative">
+          <div class="inline-flex items-center gap-1.5 bg-ink/10 backdrop-blur-sm px-2.5 py-1 rounded-full text-[11px] font-bold">
+            <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+            76 abiertos
+          </div>
+        </div>
+        <div class="relative">
+          <p class="text-xs font-semibold opacity-70 uppercase tracking-wider">Barrio 03</p>
+          <h3 class="font-display text-3xl mt-1 leading-tight">Envigado</h3>
+          <p class="text-sm opacity-80 mt-1.5">Tradicional, parque, antojo</p>
+        </div>
+      </article>
+
+      <!-- Provenza -->
+      <article data-fade data-fade-delay="3" class="group relative overflow-hidden rounded-3xl ring-soft bg-gradient-to-br from-secondary/20 via-surface to-surface text-ink p-6 aspect-[4/5] flex flex-col justify-between hover:-translate-y-1 hover:shadow-lift transition duration-300">
+        <div class="absolute -left-12 -top-12 w-48 h-48 rounded-full bg-secondary/15 blur-2xl" aria-hidden="true"></div>
+        <div class="absolute right-8 bottom-24 w-3 h-3 rounded-full bg-secondary" aria-hidden="true"></div>
+        <div class="absolute right-16 top-20 w-2 h-2 rounded-full bg-secondary/70" aria-hidden="true"></div>
+        <div class="relative">
+          <div class="inline-flex items-center gap-1.5 bg-surface/80 backdrop-blur px-2.5 py-1 rounded-full text-[11px] font-bold ring-soft">
+            <span class="w-1.5 h-1.5 rounded-full bg-busy"></span>
+            64 abiertos · alta demanda
+          </div>
+        </div>
+        <div class="relative">
+          <p class="text-xs font-semibold text-secondary uppercase tracking-wider">Barrio 04</p>
+          <h3 class="font-display text-3xl mt-1 leading-tight">Provenza</h3>
+          <p class="text-sm text-muted mt-1.5">Trendy, terrazas, cocteles</p>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- ====== FINAL CTA ====== -->
+<section id="download" class="px-5 sm:px-8 pb-20 sm:pb-28">
+  <div class="max-w-7xl mx-auto relative overflow-hidden rounded-4xl sm:rounded-5xl bg-night text-ink px-6 sm:px-12 py-16 sm:py-24 ring-soft">
+    <!-- decorative brand glows -->
+    <div class="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-brand/35 blur-3xl" aria-hidden="true"></div>
+    <div class="absolute -bottom-32 -left-20 w-96 h-96 rounded-full bg-brand/20 blur-3xl" aria-hidden="true"></div>
+    <div class="absolute inset-0 grain opacity-30" aria-hidden="true"></div>
+
+    <div class="relative max-w-3xl">
+      <div class="inline-flex items-center gap-2 rounded-full bg-ink/10 backdrop-blur-sm px-3 py-1.5 text-xs sm:text-sm font-semibold">
+        <span class="relative flex w-2 h-2">
+          <span class="absolute inline-flex w-full h-full rounded-full bg-emerald-400 animate-pulseRing"></span>
+          <span class="relative inline-flex w-2 h-2 rounded-full bg-emerald-400"></span>
+        </span>
+        Disponible en Medellín · Gratis
+      </div>
+
+      <h2 class="mt-6 font-display text-4xl sm:text-5xl md:text-6xl leading-[1.05] tracking-tight">
+        El próximo plan, <span class="text-brand">sin filas.</span>
+      </h2>
+      <p class="mt-5 text-lg sm:text-xl text-ink/75 max-w-xl leading-relaxed">
+        Descarga Pomodoro y vuélvete el amigo que siempre escoge bien el sitio.
+      </p>
+
+      <div class="mt-8 flex flex-col sm:flex-row gap-3">
+        <a href="#" aria-label="Descargar en App Store" class="flex items-center gap-3 rounded-2xl bg-ink text-night px-5 py-3.5 hover:bg-white transition-colors duration-200 shadow-lift">
+          <svg viewBox="0 0 24 24" class="w-7 h-7" fill="currentColor" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.45 2.22-1.18 3.01-.78.85-2.05 1.5-3.07 1.42-.13-1.12.45-2.27 1.16-3.01.79-.83 2.13-1.45 3.09-1.42zM20.5 17.04c-.55 1.27-.81 1.83-1.52 2.96-.99 1.55-2.39 3.48-4.13 3.5-1.55.02-1.95-1-4.05-.99-2.1.01-2.54 1.01-4.09.99-1.74-.02-3.07-1.77-4.06-3.31-2.78-4.32-3.07-9.39-1.36-12.08 1.21-1.92 3.13-3.04 4.93-3.04 1.84 0 3 .99 4.52.99 1.47 0 2.37-1 4.5-1 1.61 0 3.32.88 4.55 2.39-4 2.18-3.35 7.88-.29 9.59z"/></svg>
+          <span class="flex flex-col leading-tight">
+            <span class="text-[0.7rem] uppercase tracking-wider text-night/60">Descargar en</span>
+            <span class="font-display text-lg">App Store</span>
+          </span>
+        </a>
+        <a href="#" aria-label="Descargar en Google Play" class="flex items-center gap-3 rounded-2xl bg-ember-500 text-white px-5 py-3.5 hover:bg-ember-600 transition-colors duration-200 shadow-lift">
+          <svg viewBox="0 0 24 24" class="w-7 h-7" aria-hidden="true">
+            <path fill="#ffffff" d="M3.6 20.5l10-10-10-10c-.4.3-.6.8-.6 1.4v17.2c0 .6.2 1.1.6 1.4z" opacity=".95"/>
+            <path fill="#FFE0B2" d="M17.4 14.3l-3.8-3.8 3.8-3.8 4.4 2.5c.9.5.9 1.8 0 2.3l-4.4 2.8z"/>
+            <path fill="#FFCC80" d="M3.6 20.5c.4.4 1 .4 1.5.1l12.3-7-3.8-3.8-10 10.7z"/>
+            <path fill="#FFFFFF" d="M3.6 0.5c-.4.3-.6.8-.6 1.4v17.2c0 .3 0 .5.1.7l10-10.6L3.6 0.5z" opacity=".7"/>
+          </svg>
+          <span class="flex flex-col leading-tight">
+            <span class="text-[0.7rem] uppercase tracking-wider text-white/80">Disponible en</span>
+            <span class="font-display text-lg">Google Play</span>
+          </span>
+        </a>
+      </div>
+
+      <p class="mt-6 text-sm text-ink/60">iOS 15+ · Android 9+ · ~32 MB</p>
+    </div>
+  </div>
+</section>
+
+<!-- ====== FOOTER ====== -->
+<footer class="border-t border-line">
+  <div class="max-w-7xl mx-auto px-5 sm:px-8 py-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-8">
+    <div class="flex flex-col">
+      <span class="font-display text-xl text-brand tracking-[0.08em] leading-none">POMODORO</span>
+      <span class="text-[10px] font-bold text-brand/75 tracking-[0.3em] mt-2">RECOLECTA EXPERIENCIAS</span>
+    </div>
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted">
+      <a href="#" class="hover:text-ink transition">Privacidad</a>
+      <a href="#" class="hover:text-ink transition">Términos</a>
+      <a href="#" class="hover:text-ink transition">Para restaurantes</a>
+      <a href="mailto:hola@pomodoro.app" class="hover:text-ink transition">hola@pomodoro.app</a>
+    </div>
+    <p class="text-xs text-muted">© <span data-year>2026</span> Pomodoro · Hecho en Medellín</p>
+  </div>
+</footer>
+
+<script src="script.js" defer></script>
+</body>
+</html>
