@@ -165,12 +165,13 @@
 
       const lerp = (a, b, t) => a + (b - a) * t;
       const rotate = lerp(20, 0, p);
-      const scaleStart = isMobileShow ? 0.7 : 1.05;
-      const scaleEnd = isMobileShow ? 0.9 : 1;
+      // Never upscale past 1.0 to keep the screen content pixel-crisp.
+      const scaleStart = isMobileShow ? 0.78 : 1;
+      const scaleEnd = isMobileShow ? 0.92 : 1;
       const scale = lerp(scaleStart, scaleEnd, p);
       const translate = lerp(0, -100, p);
 
-      showcasePhone.style.transform = `rotateX(${rotate}deg) scale(${scale})`;
+      showcasePhone.style.transform = `rotateX(${rotate}deg) scale(${scale}) translateZ(0)`;
       showcaseHeader.style.transform = `translateY(${translate}px)`;
     };
 

@@ -88,13 +88,19 @@ h1, h2, h3, h4, .font-display {
 [data-showcase-phone] {
   transform-origin: center center;
   /* initial state matches scroll progress 0 — JS will overwrite once mounted */
-  transform: rotateX(20deg) scale(1.05);
+  transform: rotateX(20deg) scale(1) translateZ(0);
   transition: transform 50ms linear;
+  /* Force GPU compositing + crisp render on big displays */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  -webkit-font-smoothing: antialiased;
 }
 
 @media (max-width: 768px) {
   [data-showcase-phone] {
-    transform: rotateX(20deg) scale(0.7);
+    transform: rotateX(20deg) scale(0.78) translateZ(0);
   }
 }
 
